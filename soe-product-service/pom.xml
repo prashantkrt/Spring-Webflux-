@@ -57,6 +57,20 @@
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<!-- Core Resilience4j Circuit Breaker for Spring Boot 3 -->
+		<dependency>
+			<groupId>io.github.resilience4j</groupId>
+			<artifactId>resilience4j-spring-boot3</artifactId>
+			<version>2.1.0</version>
+		</dependency>
+
+		<!-- Reactor operator support for WebFlux/WebClient -->
+		<dependency>
+			<groupId>io.github.resilience4j</groupId>
+			<artifactId>resilience4j-reactor</artifactId>
+			<version>2.1.0</version>
+		</dependency>
+
 
 		<dependency>
 			<groupId>io.projectreactor</groupId>

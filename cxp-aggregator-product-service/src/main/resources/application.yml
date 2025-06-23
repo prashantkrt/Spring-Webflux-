@@ -1,0 +1,11 @@
+resilience4j:
+  retry:
+    instances:
+      productServiceRetry:
+        max-attempts: 3
+        wait-duration: 1s
+        retry-exceptions:
+          - java.io.IOException
+          - org.springframework.web.reactive.function.client.WebClientRequestException
+        ignore-exceptions:
+          - com.mylearning.productaggregatorservice.exception.DownstreamException
