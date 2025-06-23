@@ -1,0 +1,36 @@
+
+product-domain-service/
+├── pom.xml
+├── src/
+│   ├── main/java/com/example/domain/
+│   └── main/resources/data/products.json
+
+product-aggregator-service/
+├── pom.xml
+├── src/
+│   ├── main/java/com/example/aggregator/
+│   └── main/resources/
+
+product-service/
+├── pom.xml
+├── src/
+│   ├── main/java/com/example/productservice/
+│   └── main/resources/
+
+
+soe
+http://localhost:8080/api/products/101/price
+http://localhost:8080/api/products/11/details
+http://localhost:8080/api/products/11/details
+
+
+Aggregator:
+http://localhost:8081/api/aggregator/products
+http://localhost:8081/api/aggregator/products/111
+http://localhost:8081/api/aggregator/products/101/price
+
+domain service:
+http://localhost:8082/api/products/101
+http://localhost:8082/api/products/101/price
+http://localhost:8082/api/products
+
