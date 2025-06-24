@@ -13,7 +13,6 @@ import java.time.Instant;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ApiResponse<T> {
-
     @Schema(description = "Timestamp of the response")
     private Instant timestamp;
 

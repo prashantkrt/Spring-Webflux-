@@ -26,6 +26,8 @@ public class GlobalExceptionHandler {
             AggregatorUnavailableException ex,
             ServerWebExchange exchange) {
 
+        log.error("AggregatorUnavailableException: {}", ex.getMessage());
+
         List<ApiError> errorList = ex.getErrors() != null
                 ? ex.getErrors()
                 : List.of(ApiError.builder().message(ex.getMessage()).build());
@@ -44,6 +46,9 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Object>> handleWebClientError(
             WebClientResponseException ex, ServerWebExchange exchange) {
 
+        log.warn("WebClientResponseException while calling downstream: [{} {}] {}",
+                ex.getRawStatusCode(), ex.getStatusText(), ex.getResponseBodyAsString());
+
         List<ApiError> errorList = List.of(ApiError.builder()
                 .message(ex.getResponseBodyAsString())
                 .build());
@@ -61,6 +66,8 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ResponseEntity<ApiResponse<Object>> handleConstraintViolation(
             ConstraintViolationException ex, ServerWebExchange exchange) {
+
+        log.warn("ConstraintViolationException: {} violations", ex.getConstraintViolations().size());
 
         List<ApiError> errorList = ex.getConstraintViolations().stream()
                 .map(v -> ApiError.builder()
@@ -83,6 +90,8 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Object>> handleInvalidArgs(
             MethodArgumentNotValidException ex, ServerWebExchange exchange) {
 
+        log.warn("MethodArgumentNotValidException: {} field errors", ex.getBindingResult().getFieldErrors().size());
+
         List<ApiError> errorList = ex.getBindingResult().getFieldErrors().stream()
                 .map(e -> ApiError.builder()
                         .message(e.getField() + ": " + e.getDefaultMessage())
@@ -104,7 +113,9 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Object>> handleGeneralError(
             Exception ex, ServerWebExchange exchange) {
 
-        log.error("Unexpected error occurred", ex);
+        log.warn("Unexpected error occurred", ex);
+        log.error("Unhandled exception occurred while processing [{}]: {}",
+                exchange.getRequest().getPath(), ex.getMessage(), ex);
 
         List<ApiError> errorList = List.of(ApiError.builder()
                 .message(ex.getMessage())
@@ -125,6 +136,9 @@ public class GlobalExceptionHandler {
             String message,
             List<ApiError> errors,
             Map<String, String> fieldErrors) {
+
+        String path = exchange.getRequest().getPath().value();
+        log.error("Building error response [{}] for path: {}", status.value(), path);
 
         ApiResponse<Object> response = ApiResponse.<Object>builder()
                 .timestamp(Instant.now())
