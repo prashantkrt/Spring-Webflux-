@@ -7,7 +7,6 @@ import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 
-
 @Schema(name = "ApiResponse", description = "Standard API response wrapper")
 @Data
 @AllArgsConstructor
