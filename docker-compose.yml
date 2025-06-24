@@ -1,0 +1,39 @@
+version: "3.8"
+
+services:
+
+  domain-service:
+    image: product-domain-service:v1
+    container_name: domain-service
+    ports:
+      - "8082:8082"
+    networks:
+      - cxp-net
+
+  aggregator-service:
+    image: product-aggregator-service:v1
+    container_name: aggregator-service
+    ports:
+      - "8081:8081"
+    depends_on:
+      - domain-service
+    environment:
+      PRODUCT_SERVICE_BASE_URL: http://domain-service:8082/api/products
+    networks:
+      - cxp-net
+
+  soe-service:
+    image: soe-product-service:v1
+    container_name: soe-service
+    ports:
+      - "8080:8080"
+    depends_on:
+      - aggregator-service
+    environment:
+      AGGREGATOR_BASE_URL: http://aggregator-service:8081
+    networks:
+      - cxp-net
+
+networks:
+  cxp-net:
+    driver: bridge

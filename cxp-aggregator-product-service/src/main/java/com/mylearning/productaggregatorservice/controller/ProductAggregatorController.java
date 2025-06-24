@@ -26,7 +26,6 @@ public class ProductAggregatorController {
 
     private final ProductAggregatorService productAggregatorService;
 
-    /** GET /api/aggregator/products – every product (wrapped) */
     @GetMapping
     public Mono<ResponseEntity<ApiResponse<List<ProductDto>>>> getAllProducts() {
         log.info("Request: all products");
@@ -39,7 +38,7 @@ public class ProductAggregatorController {
                         resp.getBody().getData().size()));
     }
 
-    /** GET /api/aggregator/products/{id} – product details */
+
     @GetMapping("/{id}")
     public Mono<ResponseEntity<ApiResponse<ProductDto>>> getProductById(
             @PathVariable @NotBlank(message = "Product ID must not be blank") String id) {
@@ -55,11 +54,8 @@ public class ProductAggregatorController {
                 .map(ResponseEntity::ok)                // 200 OK
                 .doOnSuccess(resp -> log.info("Response for id {}: status={}",
                         id, resp.getStatusCode()));
-        /* Any error (e.g., DownstreamException) will bubble to GlobalExceptionHandler,
-           which will return ApiResponse with errors populated. */
     }
 
-    /** GET /api/aggregator/products/{id}/price – price only */
     @GetMapping("/{id}/price")
     public Mono<ResponseEntity<ApiResponse<Double>>> getPriceById(
             @PathVariable @NotBlank(message = "Product ID must not be blank") String id) {
