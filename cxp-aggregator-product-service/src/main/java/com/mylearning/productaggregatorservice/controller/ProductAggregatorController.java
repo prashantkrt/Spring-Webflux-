@@ -43,6 +43,10 @@ public class ProductAggregatorController {
     @GetMapping("/{id}")
     public Mono<ResponseEntity<ApiResponse<ProductDto>>> getProductById(
             @PathVariable @NotBlank(message = "Product ID must not be blank") String id) {
+        
+        if (id == null || id.trim().isEmpty()) {
+            return Mono.error(new IllegalArgumentException("Product ID must not be null or empty"));
+        }
 
         log.info("Request: product details for id {}", id);
 
@@ -59,6 +63,10 @@ public class ProductAggregatorController {
     @GetMapping("/{id}/price")
     public Mono<ResponseEntity<ApiResponse<Double>>> getPriceById(
             @PathVariable @NotBlank(message = "Product ID must not be blank") String id) {
+                
+        if (id == null || id.trim().isEmpty()) {
+            return Mono.error(new IllegalArgumentException("Product ID must not be null or empty"));
+        }
 
         log.info("Request: price for id {}", id);
 
