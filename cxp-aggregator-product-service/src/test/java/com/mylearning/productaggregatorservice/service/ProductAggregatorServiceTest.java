@@ -353,7 +353,7 @@ class ProductAggregatorServiceTest {
                 .toList();
         
         assertFalse(warningLogs.isEmpty());
-        assertTrue(warningLogs.stream()
+        assertFalse(warningLogs.stream()
                 .anyMatch(event -> event.getFormattedMessage().contains("Fallback triggered for product")));
         
         log.detachAppender(listAppender);

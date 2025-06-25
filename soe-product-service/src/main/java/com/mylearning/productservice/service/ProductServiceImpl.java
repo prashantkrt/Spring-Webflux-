@@ -18,8 +18,8 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @Slf4j
@@ -36,17 +36,22 @@ public class ProductServiceImpl implements ProductService {
         this.circuitBreakerRegistry = circuitBreakerRegistry;
         this.objectMapper = objectMapper;
     }
+
     private static final String CB_NAME = "productServiceCB";
 
     private CircuitBreaker getCircuitBreaker() {
         return circuitBreakerRegistry.circuitBreaker(CB_NAME);
     }
 
-    private static final ParameterizedTypeReference<ApiResponse<ProductDto>> PRODUCT_REF = new ParameterizedTypeReference<>() {};
-    private static final ParameterizedTypeReference<ApiResponse<List<ProductDto>>> LIST_REF = new ParameterizedTypeReference<>() {};
-    private static final ParameterizedTypeReference<ApiResponse<Double>> PRICE_REF = new ParameterizedTypeReference<>() {};
+    private static final ParameterizedTypeReference<ApiResponse<ProductDto>> PRODUCT_REF = new ParameterizedTypeReference<>() {
+    };
+    private static final ParameterizedTypeReference<ApiResponse<List<ProductDto>>> LIST_REF = new ParameterizedTypeReference<>() {
+    };
+    private static final ParameterizedTypeReference<ApiResponse<Double>> PRICE_REF = new ParameterizedTypeReference<>() {
+    };
 
     private static final String ERROR_PREFIX = "Aggregator error while fetching ";
+    private static final String STATUS_KEY = "status";
 
     @Override
     @WithSpan("ProductService.getProductDetails")
@@ -91,40 +96,67 @@ public class ProductServiceImpl implements ProductService {
                 .onErrorResume(ex -> handleError("price for product " + id, ex));
     }
 
+    // fallback error handling
     private <T> Mono<T> handleError(String context, Throwable ex) {
+        log.warn("Fallback triggered for {}: {}", context, ex.getMessage());
         return Mono.error(toAggregatorUnavailable(context, ex));
     }
 
+    // fallback error handling
     private <T> Flux<T> handleErrorFlux(String context, Throwable ex) {
+        log.warn("Fallback triggered for {}: {}", context, ex.getMessage());
         return Flux.error(toAggregatorUnavailable(context, ex));
     }
 
+    //parsing error from aggregator
     @WithSpan("ProductService.parseAggregatorError")
     private AggregatorUnavailableException toAggregatorUnavailable(String context, Throwable ex) {
         if (ex instanceof WebClientResponseException wex) {
             try {
-                // Parse with generic Object since ApiResponse is generic
-                ApiResponse<Object> raw = objectMapper.readValue(
+                Map<String, Object> responseBody = objectMapper.readValue(
                         wex.getResponseBodyAsString(),
-                        new TypeReference<>() {}
+                        new TypeReference<>() {
+                        }
                 );
 
-                // Try mapping each entry of 'errors' to ApiError
-                List<ApiError> errors = raw.getErrors() != null ? raw.getErrors() : Collections.emptyList();
+                String productId = context.replace("product ", "");
 
-                String message = errors.stream()
-                        .findFirst()
-                        .map(ApiError::getMessage)
-                        .orElse("Unknown aggregator error");
+                int status = (int) responseBody.getOrDefault(STATUS_KEY, wex.getStatusCode().value());
 
-                return new AggregatorUnavailableException(ERROR_PREFIX + context + ": " + message, errors);
+                String message = switch (status) {
+                    case 400 -> "Bad request sent to aggregator";
+                    case 404 -> "Product not found in aggregator: '" + productId + "'";
+                    case 502, 503, 504 -> "Aggregator service is currently unavailable";
+                    default -> "Unexpected error from aggregator (status " + status + ")";
+                };
+
+                // Prepare clean key-value details
+                Map<String, Object> detailsMap = Map.of(
+                        STATUS_KEY, responseBody.getOrDefault(STATUS_KEY, 500),
+                        "error", responseBody.getOrDefault("error", "Unknown"),
+                        "path", responseBody.getOrDefault("path", "N/A"),
+                        "requestId", responseBody.getOrDefault("requestId", "N/A"),
+                        "timestamp", responseBody.getOrDefault("timestamp", "N/A")
+                );
+
+                ApiError apiError = ApiError.builder()
+                        .code("PRODUCT_NOT_FOUND")
+                        .message(message)
+                        .details(detailsMap)
+                        .build();
+
+                return new AggregatorUnavailableException(
+                        ERROR_PREFIX + context + ": " + message,
+                        List.of(apiError)
+                );
 
             } catch (Exception e) {
-                log.warn("Failed to parse error body from aggregator: {}", e.getMessage());
+                log.warn("Error parsing aggregator response: {}", e.getMessage());
                 return new AggregatorUnavailableException(ERROR_PREFIX + context, wex);
             }
         }
 
-        return new AggregatorUnavailableException(ERROR_PREFIX+ context, ex);
+        return new AggregatorUnavailableException(ERROR_PREFIX + context, ex);
     }
+
 }

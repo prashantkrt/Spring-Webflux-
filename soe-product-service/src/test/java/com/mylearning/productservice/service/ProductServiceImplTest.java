@@ -3,6 +3,7 @@ package com.mylearning.productservice.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mylearning.productservice.dto.ApiError;
 import com.mylearning.productservice.dto.ApiResponse;
 import com.mylearning.productservice.dto.ProductDto;
 import com.mylearning.productservice.exception.AggregatorUnavailableException;
@@ -16,15 +17,21 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientRequestException;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.net.URI;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -197,5 +204,112 @@ class ProductServiceImplTest {
         // Verify
         assertThat(result).isInstanceOf(AggregatorUnavailableException.class);
         assertThat(result.getMessage()).contains("test-context");
+    }
+    
+    @Test
+    void toAggregatorUnavailable_WithDifferentStatusCodes() throws Exception {
+        // Test with 400 Bad Request
+        testErrorResponse(400, "Bad request sent to aggregator");
+        
+        // Test with 404 Not Found
+        testErrorResponse(404, "Product not found in aggregator: 'test-id'");
+        
+        // Test with 502 Bad Gateway
+        testErrorResponse(502, "Aggregator service is currently unavailable");
+        
+        // Test with 503 Service Unavailable
+        testErrorResponse(503, "Aggregator service is currently unavailable");
+        
+        // Test with 504 Gateway Timeout
+        testErrorResponse(504, "Aggregator service is currently unavailable");
+        
+        // Test with unknown status code
+        testErrorResponse(418, "Unexpected error from aggregator (status 418)");
+    }
+    
+    private void testErrorResponse(int statusCode, String expectedMessage) throws Exception {
+        // Setup
+        WebClientResponseException ex = mock(WebClientResponseException.class);
+        when(ex.getResponseBodyAsString()).thenReturn("{}");
+        when(ex.getStatusCode()).thenReturn(HttpStatus.valueOf(statusCode));
+        when(objectMapper.readValue(anyString(), any(TypeReference.class)))
+                .thenReturn(Map.of("status", statusCode));
+
+        // Execute
+        String context = statusCode == 404 ? "product test-id" : "test-context";
+        Throwable result = ReflectionTestUtils.invokeMethod(
+                productService, "toAggregatorUnavailable", context, ex);
+
+        // Verify
+        assertThat(result).isInstanceOf(AggregatorUnavailableException.class);
+        assertThat(result.getMessage()).contains(expectedMessage);
+        
+        // Verify ApiError details when status is 400
+        if (statusCode == 400) {
+            List<ApiError> errors = ((AggregatorUnavailableException) result).getErrors();
+            assertThat(errors).isNotEmpty();
+            assertThat(errors.get(0).getMessage()).isEqualTo(expectedMessage);
+        }
+    }
+    
+    @Test
+    void handleError_WithWebClientRequestException() {
+        // Setup
+        WebClientRequestException ex = new WebClientRequestException(
+            new RuntimeException("Connection refused"),
+            HttpMethod.GET,
+            URI.create("http://test-uri"),
+            new HttpHeaders());
+            
+        // Execute
+        Mono<?> result = (Mono<?>) ReflectionTestUtils.invokeMethod(
+            productService, "handleError", "test-context", ex);
+            
+        // Verify
+        StepVerifier.create((Mono<?>) result)
+            .expectErrorSatisfies(error -> {
+                assertThat(error).isInstanceOf(AggregatorUnavailableException.class);
+                assertThat(error.getMessage()).contains("test-context");
+            })
+            .verify();
+    }
+    
+    @Test
+    void handleErrorFlux_WithWebClientRequestException() {
+        // Setup
+        WebClientRequestException ex = new WebClientRequestException(
+            new RuntimeException("Connection refused"),
+            HttpMethod.GET,
+            URI.create("http://test-uri"),
+            new HttpHeaders());
+            
+        // Execute
+        Flux<?> result = (Flux<?>) ReflectionTestUtils.invokeMethod(
+            productService, "handleErrorFlux", "test-context", ex);
+            
+        // Verify
+        StepVerifier.create((Flux<?>) result)
+            .expectErrorSatisfies(error -> {
+                assertThat(error).isInstanceOf(AggregatorUnavailableException.class);
+                assertThat(error.getMessage()).contains("test-context");
+            })
+            .verify();
+    }
+    
+    @Test
+    void circuitBreaker_IsConfiguredCorrectly() {
+        // Setup - Make a call that would trigger circuit breaker
+        when(responseSpec.bodyToMono(any(ParameterizedTypeReference.class)))
+            .thenReturn(Mono.error(new WebClientResponseException(
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                "Internal Server Error",
+                null, null, null)));
+
+        // Execute
+        productService.getProductDetails("test-id").subscribe();
+
+        // Verify
+        verify(circuitBreakerRegistry).circuitBreaker("productServiceCB");
+        assertThat(circuitBreaker).isNotNull();
     }
 }

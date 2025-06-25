@@ -24,4 +24,12 @@ public class ApiError {
             example = "{\"productId\": \"must not be blank\"}"
     )
     private Map<String, String> fieldErrors;
+
+    //for structured downstream info
+    @Schema(
+            description = "Structured error details",
+            example = "{\"status\": 503, \"error\": \"Service Unavailable\", " +
+                    "\"path\": \"/products/123\", \"requestId\": \"req-123\", " +
+                    "\"timestamp\": \"2025-06-24T12:34:56Z\"}")
+    private Map<String, Object> details;
 }

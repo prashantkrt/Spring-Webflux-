@@ -16,6 +16,8 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 @Service
 @Slf4j
 public class ProductAggregatorServiceImpl implements ProductAggregatorService {
@@ -28,9 +30,9 @@ public class ProductAggregatorServiceImpl implements ProductAggregatorService {
     private final RetryRegistry retryRegistry;
 
     public ProductAggregatorServiceImpl(WebClient.Builder builder,
-                                    @Value("${product.service.base-url}") String baseUrl,
-                                    CircuitBreakerRegistry cbRegistry,
-                                    RetryRegistry retryRegistry) {
+                                        @Value("${product.service.base-url}") String baseUrl,
+                                        CircuitBreakerRegistry cbRegistry,
+                                        RetryRegistry retryRegistry) {
         this.aggregatorWebClient = builder.baseUrl(baseUrl).build();
         this.cbRegistry = cbRegistry;
         this.retryRegistry = retryRegistry;
@@ -47,76 +49,95 @@ public class ProductAggregatorServiceImpl implements ProductAggregatorService {
     @Override
     public Flux<ProductDto> getAllProducts() {
         log.info("Fetching all products");
+        AtomicInteger attempts = new AtomicInteger(0);
 
         return aggregatorWebClient.get()
                 .uri("")
                 .retrieve()
                 .bodyToFlux(ProductDto.class)
+                .doOnSubscribe(s -> attempts.set(0))
+                .doOnError(e -> attempts.incrementAndGet())
                 .transformDeferred(CircuitBreakerOperator.of(getCircuitBreaker()))
                 .transformDeferred(RetryOperator.of(getRetry()))
                 .doOnNext(product -> log.debug("Received product: {}", product))
-                .doOnError(ex -> log.error("Error fetching all products: {}", ex.getMessage()))
-                .onErrorResume(ex -> {
-                    if (ex instanceof WebClientResponseException webEx) {
-                        String body = webEx.getResponseBodyAsString();
-                        log.warn("Downstream 4xx/5xx while fetching all products – {}: {}", webEx.getStatusCode(), body);
-                        return Flux.error(new DownstreamException("Failed to fetch all products: " + body, webEx));
-                    }
-                    return Flux.error(new DownstreamException("Failed to fetch all products", ex));
-                });
+                .onErrorResume(ex -> fallbackAllProducts(ex, attempts.get()));
     }
 
     @Override
     public Mono<ProductDto> getProduct(String id) {
         log.info("Fetching product id {}", id);
+        AtomicInteger attempts = new AtomicInteger(0);
 
         return aggregatorWebClient.get()
                 .uri("/{id}", id)
                 .retrieve()
                 .bodyToMono(ProductDto.class)
+                .doOnSubscribe(s -> attempts.set(0))
+                .doOnError(e -> attempts.incrementAndGet())
                 .transformDeferred(CircuitBreakerOperator.of(getCircuitBreaker()))
                 .transformDeferred(RetryOperator.of(getRetry()))
                 .doOnSuccess(product -> log.info("Product {} fetched", id))
-                .doOnError(ex -> log.error("Error fetching product {}: {}", id, ex.getMessage()))
-                .onErrorResume(ex -> {
-                    fallbackProductAction(id, ex);
-                    if (ex instanceof WebClientResponseException webEx) {
-                        String body = webEx.getResponseBodyAsString();
-                        log.warn("Downstream 4xx/5xx for product {} – {}: {}", id, webEx.getStatusCode(), body);
-                        return Mono.error(new DownstreamException("Failed to fetch product " + id + ": " + body, webEx));
-                    }
-                    return Mono.error(new DownstreamException("Failed to fetch product " + id, ex));
-                });
+                .onErrorResume(ex -> fallbackProduct(id, ex, attempts.get()));
     }
 
     @Override
     public Mono<Double> getProductPrice(String id) {
         log.info("Fetching price for product id {}", id);
+        AtomicInteger attempts = new AtomicInteger(0);
 
         return aggregatorWebClient.get()
                 .uri("/{id}/price", id)
                 .retrieve()
                 .bodyToMono(Double.class)
+                .doOnSubscribe(s -> attempts.set(0))
+                .doOnError(e -> attempts.incrementAndGet())
                 .transformDeferred(CircuitBreakerOperator.of(getCircuitBreaker()))
                 .transformDeferred(RetryOperator.of(getRetry()))
                 .doOnSuccess(price -> log.info("Price for id {} is {}", id, price))
-                .doOnError(ex -> log.error("Error fetching price for id {}: {}", id, ex.getMessage()))
-                .onErrorResume(ex -> {
-                    fallbackProductPriceAction(id, ex);
-                    if (ex instanceof WebClientResponseException webEx) {
-                        String body = webEx.getResponseBodyAsString();
-                        log.warn("Downstream 4xx/5xx for price {} – {}: {}", id, webEx.getStatusCode(), body);
-                        return Mono.error(new DownstreamException("Failed to fetch price for product " + id + ": " + body, webEx));
-                    }
-                    return Mono.error(new DownstreamException("Failed to fetch price for product " + id, ex));
-                });
+                .onErrorResume(ex -> fallbackPrice(id, ex, attempts.get()));
     }
 
-    private void fallbackProductAction(String id, Throwable ex) {
-        log.warn("Fallback triggered for product {}: {}", id, ex.getMessage());
+    // ---------- Fallbacks (return Mono/Flux<T>) ----------
+
+    private Flux<ProductDto> fallbackAllProducts(Throwable ex, int retries) {
+        int totalTries = retries + 1;
+        log.warn("Fallback after {} attempt{} ({} retry{}): {}",
+                totalTries, (totalTries == 1 ? "" : "s"),
+                retries, (retries == 1 ? "" : "ies"), ex.toString());
+
+        if (ex instanceof WebClientResponseException webEx) {
+            String body = webEx.getResponseBodyAsString();
+            log.warn("Downstream 4xx/5xx while fetching all products – {}: {}", webEx.getStatusCode(), body);
+            return Flux.error(new DownstreamException("Failed to fetch all products: " + body, webEx));
+        }
+        return Flux.error(new DownstreamException("Failed to fetch all products", ex));
     }
 
-    private void fallbackProductPriceAction(String id, Throwable ex) {
-        log.warn("Fallback triggered for price {}: {}", id, ex.getMessage());
+    private Mono<ProductDto> fallbackProduct(String id, Throwable ex, int retries) {
+        int totalTries = retries + 1;
+        log.warn("Fallback for product {} after {} attempt{} ({} retry{}): {}",
+                id, totalTries, (totalTries == 1 ? "" : "s"),
+                retries, (retries == 1 ? "" : "ies"), ex.toString());
+
+        if (ex instanceof WebClientResponseException webEx) {
+            String body = webEx.getResponseBodyAsString();
+            log.warn("Downstream 4xx/5xx for product {} – {}: {}", id, webEx.getStatusCode(), body);
+            return Mono.error(new DownstreamException("Failed to fetch product " + id + ": " + body, webEx));
+        }
+        return Mono.error(new DownstreamException("Failed to fetch product " + id, ex));
+    }
+
+    private Mono<Double> fallbackPrice(String id, Throwable ex, int retries) {
+        int totalTries = retries + 1;
+        log.warn("Fallback for price {} after {} attempt{} ({} retry{}): {}",
+                id, totalTries, (totalTries == 1 ? "" : "s"),
+                retries, (retries == 1 ? "" : "ies"), ex.toString());
+
+        if (ex instanceof WebClientResponseException webEx) {
+            String body = webEx.getResponseBodyAsString();
+            log.warn("Downstream 4xx/5xx for price {} – {}: {}", id, webEx.getStatusCode(), body);
+            return Mono.error(new DownstreamException("Failed to fetch price for product " + id + ": " + body, webEx));
+        }
+        return Mono.error(new DownstreamException("Failed to fetch price for product " + id, ex));
     }
 }
