@@ -76,6 +76,8 @@ class GlobalExceptionHandlerTest {
         String responseBody = "Error from external service";
         WebClientResponseException ex = mock(WebClientResponseException.class);
         when(ex.getResponseBodyAsString()).thenReturn(responseBody);
+        when(ex.getStatusCode()).thenReturn(HttpStatus.BAD_GATEWAY);
+        when(ex.getStatusText()).thenReturn("Bad Gateway");
 
         // When
         ResponseEntity<ApiResponse<Object>> response = 
