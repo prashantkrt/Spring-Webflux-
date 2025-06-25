@@ -27,13 +27,20 @@ public class ProductAggregatorController {
 
     private final ProductAggregatorService productAggregatorService;
 
-    @Operation(summary = "Get all aggregated products", description = "Fetches the complete list of aggregated products")
-    @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Products fetched successfully",
-                    content = @Content(schema = @Schema(implementation = ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Internal server error",
-                    content = @Content(schema = @Schema(implementation = ApiResponse.class)))
-    })
+    @Operation(
+            summary = "Get all aggregated products",
+            description = "Fetches the complete list of aggregated products"
+    )
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200",
+            description = "Products fetched successfully",
+            content = @Content(schema = @Schema(implementation = ApiResponse.class))
+    )
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "500",
+            description = "Internal server error",
+            content = @Content(schema = @Schema(implementation = ApiResponse.class))
+    )
     @GetMapping
     public Mono<ResponseEntity<ApiResponse<List<ProductDto>>>> getAllProducts() {
         log.info("Request: all products");
@@ -44,15 +51,25 @@ public class ProductAggregatorController {
                 .doOnSuccess(resp -> log.info("Returned {} products", resp.getBody().getData().size()));
     }
 
-    @Operation(summary = "Get product by ID", description = "Fetches a product's details by its ID")
-    @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Product fetched successfully",
-                    content = @Content(schema = @Schema(implementation = ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid product ID",
-                    content = @Content(schema = @Schema(implementation = ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Product not found",
-                    content = @Content(schema = @Schema(implementation = ApiResponse.class)))
-    })
+    @Operation(
+            summary = "Get product by ID",
+            description = "Fetches a product's details by its ID"
+    )
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200",
+            description = "Product fetched successfully",
+            content = @Content(schema = @Schema(implementation = ApiResponse.class))
+    )
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "400",
+            description = "Invalid product ID",
+            content = @Content(schema = @Schema(implementation = ApiResponse.class))
+    )
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "404",
+            description = "Product not found",
+            content = @Content(schema = @Schema(implementation = ApiResponse.class))
+    )
     @GetMapping("/{id}")
     public Mono<ResponseEntity<ApiResponse<ProductDto>>> getProductById(
             @PathVariable @NotBlank(message = "Product ID must not be blank") String id) {
@@ -69,15 +86,25 @@ public class ProductAggregatorController {
                 .doOnSuccess(resp -> log.info("Response for id {}: status={}", id, resp.getStatusCode()));
     }
 
-    @Operation(summary = "Get product price by ID", description = "Fetches the price of a product by its ID")
-    @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Price fetched successfully",
-                    content = @Content(schema = @Schema(implementation = ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid product ID",
-                    content = @Content(schema = @Schema(implementation = ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Price not found",
-                    content = @Content(schema = @Schema(implementation = ApiResponse.class)))
-    })
+    @Operation(
+            summary = "Get product price by ID",
+            description = "Fetches the price of a product by its ID"
+    )
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200",
+            description = "Price fetched successfully",
+            content = @Content(schema = @Schema(implementation = ApiResponse.class))
+    )
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "400",
+            description = "Invalid product ID",
+            content = @Content(schema = @Schema(implementation = ApiResponse.class))
+    )
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "404",
+            description = "Price not found",
+            content = @Content(schema = @Schema(implementation = ApiResponse.class))
+    )
     @GetMapping("/{id}/price")
     public Mono<ResponseEntity<ApiResponse<Double>>> getPriceById(
             @PathVariable @NotBlank(message = "Product ID must not be blank") String id) {

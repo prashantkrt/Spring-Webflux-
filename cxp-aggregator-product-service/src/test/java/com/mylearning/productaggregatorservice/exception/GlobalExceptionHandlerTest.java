@@ -73,7 +73,7 @@ class GlobalExceptionHandlerTest {
         assertNotNull(response.getBody().getErrors());
         assertEquals(1, response.getBody().getErrors().size());
         
-        ApiError<?> error = response.getBody().getErrors().get(0);
+        ApiError error = response.getBody().getErrors().get(0);
         assertEquals("VALIDATION_ERROR", error.getCode());
         assertEquals("Invalid input", error.getMessage());
         assertNotNull(error.getFieldErrors());
@@ -107,7 +107,7 @@ class GlobalExceptionHandlerTest {
         assertNotNull(response.getBody().getErrors());
         assertEquals(1, response.getBody().getErrors().size());
         
-        ApiError<?> error = response.getBody().getErrors().get(0);
+        ApiError  error = response.getBody().getErrors().get(0);
         assertEquals("CONSTRAINT_VIOLATION", error.getCode());
         assertEquals("Invalid parameter(s)", error.getMessage());
         assertNotNull(error.getFieldErrors());
@@ -138,7 +138,7 @@ class GlobalExceptionHandlerTest {
         assertNotNull(response.getBody().getErrors());
         assertEquals(1, response.getBody().getErrors().size());
         
-        ApiError<?> error = response.getBody().getErrors().get(0);
+        ApiError error = response.getBody().getErrors().get(0);
         assertEquals("DOWNSTREAM_FAILURE", error.getCode());
         assertEquals(errorMessage, error.getMessage());
         assertNull(error.getFieldErrors());
@@ -162,7 +162,7 @@ class GlobalExceptionHandlerTest {
         assertNotNull(response.getBody().getErrors());
         assertEquals(1, response.getBody().getErrors().size());
         
-        ApiError<?> error = response.getBody().getErrors().get(0);
+        ApiError error = response.getBody().getErrors().get(0);
         assertEquals("INTERNAL_ERROR", error.getCode());
         assertEquals("Something went wrong", error.getMessage());
         assertNull(error.getFieldErrors());
@@ -190,7 +190,7 @@ class GlobalExceptionHandlerTest {
     @Test
     void buildErrorResponse_ShouldCreateProperResponse() {
         // Given
-        ApiError<Object> apiError = new ApiError<>("TEST_CODE", "Test message", Collections.emptyList());
+        ApiError apiError = new ApiError("TEST_CODE", "Test message", Collections.emptyList());
         HttpStatus status = HttpStatus.BAD_REQUEST;
 
         // When

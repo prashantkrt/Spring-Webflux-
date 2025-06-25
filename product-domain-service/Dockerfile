@@ -1,6 +1,6 @@
 FROM openjdk:21
 WORKDIR /app
-ADD  target/product-domain-service.jar product-domain-service.jar
+COPY target/product-domain-service.jar product-domain-service.jar
 EXPOSE 8082
 ENTRYPOINT ["java", "-jar", "product-domain-service.jar"]
 CMD ["--server.port=8082"]

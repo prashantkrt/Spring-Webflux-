@@ -47,7 +47,7 @@ public class GlobalExceptionHandler {
             WebClientResponseException ex, ServerWebExchange exchange) {
 
         log.warn("WebClientResponseException while calling downstream: [{} {}] {}",
-                ex.getRawStatusCode(), ex.getStatusText(), ex.getResponseBodyAsString());
+                ex.getStatusCode().value(), ex.getStatusText(), ex.getResponseBodyAsString());
 
         List<ApiError> errorList = List.of(ApiError.builder()
                 .message(ex.getResponseBodyAsString())
@@ -73,7 +73,7 @@ public class GlobalExceptionHandler {
                 .map(v -> ApiError.builder()
                         .message(v.getPropertyPath() + ": " + v.getMessage())
                         .build())
-                .collect(Collectors.toList());
+                .toList();
 
         Map<String, String> fieldErrors = ex.getConstraintViolations().stream()
                 .collect(Collectors.toMap(
@@ -96,7 +96,7 @@ public class GlobalExceptionHandler {
                 .map(e -> ApiError.builder()
                         .message(e.getField() + ": " + e.getDefaultMessage())
                         .build())
-                .collect(Collectors.toList());
+                .toList();
 
         Map<String, String> fieldErrors = ex.getBindingResult().getFieldErrors().stream()
                 .collect(Collectors.toMap(

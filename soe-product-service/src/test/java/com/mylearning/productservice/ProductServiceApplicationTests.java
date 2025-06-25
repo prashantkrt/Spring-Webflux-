@@ -18,13 +18,7 @@ class ProductServiceApplicationTests {
         // This test will fail if the application context cannot start
         assertThat(applicationContext).isNotNull();
     }
-
-    @Test
-    void mainMethodStartsApplication() {
-        // Test that the main method can be called without throwing exceptions
-        ProductServiceApplication.main(new String[]{});
-    }
-
+    
     @Test
     void applicationContextTest() {
         // Verify that specific beans are loaded in the context

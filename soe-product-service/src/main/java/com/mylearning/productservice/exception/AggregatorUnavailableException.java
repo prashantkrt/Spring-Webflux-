@@ -11,7 +11,7 @@ import java.util.List;
 @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
 public class AggregatorUnavailableException extends RuntimeException {
 
-    private final List<ApiError> errors;
+    private final transient List<ApiError> errors;
 
     public AggregatorUnavailableException(String message) {
         super(message);

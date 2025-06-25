@@ -1,6 +1,6 @@
 FROM openjdk:21
 WORKDIR /app
-ADD  target/soe-product-service.jar soe-product-service.jar
+COPY  target/soe-product-service.jar soe-product-service.jar
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "soe-product-service.jar"]
 CMD ["--server.port=8080"]

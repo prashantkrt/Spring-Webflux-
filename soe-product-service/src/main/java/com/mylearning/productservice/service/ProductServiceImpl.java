@@ -46,6 +46,7 @@ public class ProductServiceImpl implements ProductService {
     private static final ParameterizedTypeReference<ApiResponse<List<ProductDto>>> LIST_REF = new ParameterizedTypeReference<>() {};
     private static final ParameterizedTypeReference<ApiResponse<Double>> PRICE_REF = new ParameterizedTypeReference<>() {};
 
+    private static final String ERROR_PREFIX = "Aggregator error while fetching ";
     @Override
     @WithSpan("ProductService.getProductDetails")
     public Mono<ProductDto> getProductDetails(String id) {
@@ -115,14 +116,14 @@ public class ProductServiceImpl implements ProductService {
                         .map(ApiError::getMessage)
                         .orElse("Unknown aggregator error");
 
-                return new AggregatorUnavailableException("Aggregator error while fetching " + context + ": " + message, errors);
+                return new AggregatorUnavailableException(ERROR_PREFIX + context + ": " + message, errors);
 
             } catch (Exception e) {
                 log.warn("Failed to parse error body from aggregator: {}", e.getMessage());
-                return new AggregatorUnavailableException("Aggregator error while fetching " + context, wex);
+                return new AggregatorUnavailableException(ERROR_PREFIX + context, wex);
             }
         }
 
-        return new AggregatorUnavailableException("Aggregator error while fetching " + context, ex);
+        return new AggregatorUnavailableException(ERROR_PREFIX+ context, ex);
     }
 }

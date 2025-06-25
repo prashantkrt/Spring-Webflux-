@@ -27,7 +27,6 @@ import reactor.test.StepVerifier;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.eq;
@@ -116,16 +115,12 @@ class ProductAggregatorServiceTest {
         lenient().when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
     }
     
-    private void setupUriStubbing(String uriTemplate, Object... uriVariables) {
-        when(requestHeadersUriSpec.uri(uriTemplate, uriVariables)).thenReturn(requestHeadersSpec);
-    }
-
     @Test
     void getAllProducts_ShouldReturnAllProducts() {
         // Given
         Flux<ProductDto> products = Flux.just(testProduct);
         setupWebClientForGetRequest("");
-        when(responseSpec.bodyToFlux(eq(ProductDto.class))).thenReturn(products);
+        when(responseSpec.bodyToFlux(ProductDto.class)).thenReturn(products);
 
         // When
         Flux<ProductDto> result = productAggregatorService.getAllProducts();
@@ -138,14 +133,14 @@ class ProductAggregatorServiceTest {
         verify(webClient).get();
         verify(requestHeadersUriSpec).uri("");
         verify(requestHeadersSpec).retrieve();
-        verify(responseSpec).bodyToFlux(eq(ProductDto.class));
+        verify(responseSpec).bodyToFlux(ProductDto.class);
     }
 
     @Test
     void getAllProducts_WhenDownstreamError_ShouldReturnError() {
         // Given
         setupWebClientForGetRequest("");
-        when(responseSpec.bodyToFlux(eq(ProductDto.class)))
+        when(responseSpec.bodyToFlux(ProductDto.class))
                 .thenReturn(Flux.error(new RuntimeException("Downstream error")));
 
         // When
@@ -159,7 +154,7 @@ class ProductAggregatorServiceTest {
         verify(webClient).get();
         verify(requestHeadersUriSpec).uri("");
         verify(requestHeadersSpec).retrieve();
-        verify(responseSpec).bodyToFlux(eq(ProductDto.class));
+        verify(responseSpec).bodyToFlux(ProductDto.class);
     }
 
     @Test
@@ -167,7 +162,7 @@ class ProductAggregatorServiceTest {
         // Given
         String productId = "p1";
         setupWebClientForGetRequest("/{id}", productId);
-        when(responseSpec.bodyToMono(eq(ProductDto.class))).thenReturn(Mono.just(testProduct));
+        when(responseSpec.bodyToMono(ProductDto.class)).thenReturn(Mono.just(testProduct));
 
         // When
         Mono<ProductDto> result = productAggregatorService.getProduct(productId);
@@ -180,7 +175,7 @@ class ProductAggregatorServiceTest {
         verify(webClient).get();
         verify(requestHeadersUriSpec).uri("/{id}", productId);
         verify(requestHeadersSpec).retrieve();
-        verify(responseSpec).bodyToMono(eq(ProductDto.class));
+        verify(responseSpec).bodyToMono(ProductDto.class);
     }
 
     @Test
@@ -188,7 +183,7 @@ class ProductAggregatorServiceTest {
         // Given
         String productId = "p1";
         setupWebClientForGetRequest("/{id}", productId);
-        when(responseSpec.bodyToMono(eq(ProductDto.class)))
+        when(responseSpec.bodyToMono(ProductDto.class))
                 .thenReturn(Mono.error(new RuntimeException("Downstream error")));
 
         // When
@@ -202,7 +197,7 @@ class ProductAggregatorServiceTest {
         verify(webClient).get();
         verify(requestHeadersUriSpec).uri("/{id}", productId);
         verify(requestHeadersSpec).retrieve();
-        verify(responseSpec).bodyToMono(eq(ProductDto.class));
+        verify(responseSpec).bodyToMono(ProductDto.class);
     }
 
     @Test
@@ -222,16 +217,16 @@ class ProductAggregatorServiceTest {
         
         // Print retry config for debugging
         System.out.println("Retry max attempts: " + retry.getRetryConfig().getMaxAttempts());
-        if (retry.getRetryConfig().getIntervalFunction() != null) {
-            System.out.println("Retry wait duration: " + retry.getRetryConfig().getIntervalFunction().apply(1) + "ms");
+        if (retry.getRetryConfig().getIntervalBiFunction() != null) {
+            System.out.println("Retry wait duration: " + retry.getRetryConfig().getIntervalBiFunction().apply(1, null) + "ms");
         }
         
         // Override the default retry configuration for this test
-        when(retryRegistry.retry(eq("productServiceRetry"))).thenReturn(retry);
+        when(retryRegistry.retry("productServiceRetry")).thenReturn(retry);
         
         // Mock the web client to always fail with the same error
         setupWebClientForGetRequest("/{id}", productId);
-        when(responseSpec.bodyToMono(eq(ProductDto.class)))
+        when(responseSpec.bodyToMono(ProductDto.class))
                 .thenReturn(Mono.error(error));
 
         // When
@@ -254,7 +249,7 @@ class ProductAggregatorServiceTest {
         verify(webClient, atLeastOnce()).get();
         verify(requestHeadersUriSpec, atLeastOnce()).uri("/{id}", productId);
         verify(requestHeadersSpec, atLeastOnce()).retrieve();
-        verify(responseSpec, atLeastOnce()).bodyToMono(eq(ProductDto.class));
+        verify(responseSpec, atLeastOnce()).bodyToMono(ProductDto.class);
         
         // Print how many times the web client was called
         System.out.println("WebClient.get() was called " + 
@@ -268,14 +263,16 @@ class ProductAggregatorServiceTest {
         // Given
         String productId = "p1";
         setupWebClientForGetRequest("/{id}", productId);
-        when(responseSpec.bodyToMono(eq(ProductDto.class)))
+        when(responseSpec.bodyToMono(ProductDto.class))
                 .thenReturn(Mono.error(new RuntimeException("Service down")));
 
         // When
         for (int i = 0; i < 5; i++) {
             try {
                 productAggregatorService.getProduct(productId).block();
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+                System.out.println("error");
+            }
         }
         
         // Then - Verify circuit breaker is open
@@ -289,7 +286,7 @@ class ProductAggregatorServiceTest {
         // Given
         String productId = "non-existent";
         setupWebClientForGetRequest("/{id}", productId);
-        when(responseSpec.bodyToMono(eq(ProductDto.class)))
+        when(responseSpec.bodyToMono(ProductDto.class))
                 .thenReturn(Mono.error(new WebClientResponseException(404, "Not Found", null, null, null)));
 
         // When
@@ -309,13 +306,13 @@ class ProductAggregatorServiceTest {
     void getProduct_ShouldLogAppropriateMessages() {
         // Given
         String productId = "p1";
-        Logger logger = (Logger) LoggerFactory.getLogger("com.mylearning.productaggregatorservice.service.ProductAggregatorServiceImpl");
+        Logger log = (Logger) LoggerFactory.getLogger("com.mylearning.productaggregatorservice.service.ProductAggregatorServiceImpl");
         ListAppender<ILoggingEvent> listAppender = new ListAppender<>();
         listAppender.start();
-        logger.addAppender(listAppender);
+        log.addAppender(listAppender);
         
         setupWebClientForGetRequest("/{id}", productId);
-        when(responseSpec.bodyToMono(eq(ProductDto.class))).thenReturn(Mono.just(testProduct));
+        when(responseSpec.bodyToMono(ProductDto.class)).thenReturn(Mono.just(testProduct));
 
         // When
         productAggregatorService.getProduct(productId).block();
@@ -327,37 +324,39 @@ class ProductAggregatorServiceTest {
                 .anyMatch(event -> event.getFormattedMessage().contains("Fetching product id " + productId) && 
                                   event.getLevel() == Level.INFO));
         
-        logger.detachAppender(listAppender);
+        log.detachAppender(listAppender);
     }
 
     @Test
     void fallbackMethods_ShouldLogWarning() {
         // Given
         String productId = "p1";
-        Logger logger = (Logger) LoggerFactory.getLogger("com.mylearning.productaggregatorservice.service.ProductAggregatorServiceImpl");
+        Logger log = (Logger) LoggerFactory.getLogger("com.mylearning.productaggregatorservice.service.ProductAggregatorServiceImpl");
         ListAppender<ILoggingEvent> listAppender = new ListAppender<>();
         listAppender.start();
-        logger.addAppender(listAppender);
+        log.addAppender(listAppender);
         
         setupWebClientForGetRequest("/{id}", productId);
-        when(responseSpec.bodyToMono(eq(ProductDto.class)))
+        when(responseSpec.bodyToMono(ProductDto.class))
                 .thenReturn(Mono.error(new RuntimeException("Service error")));
 
         // When
         try {
             productAggregatorService.getProduct(productId).block();
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+            System.out.println("some error");
+        }
 
         // Then
         List<ILoggingEvent> warningLogs = listAppender.list.stream()
                 .filter(event -> event.getLevel() == Level.WARN)
-                .collect(Collectors.toList());
+                .toList();
         
         assertFalse(warningLogs.isEmpty());
         assertTrue(warningLogs.stream()
                 .anyMatch(event -> event.getFormattedMessage().contains("Fallback triggered for product")));
         
-        logger.detachAppender(listAppender);
+        log.detachAppender(listAppender);
     }
 
     @Test
@@ -366,7 +365,7 @@ class ProductAggregatorServiceTest {
         String productId = "p1";
         Double price = 999.99;
         setupWebClientForGetRequest("/{id}/price", productId);
-        when(responseSpec.bodyToMono(eq(Double.class))).thenReturn(Mono.just(price));
+        when(responseSpec.bodyToMono(Double.class)).thenReturn(Mono.just(price));
 
         // When
         Mono<Double> result = productAggregatorService.getProductPrice(productId);
@@ -379,7 +378,7 @@ class ProductAggregatorServiceTest {
         verify(webClient).get();
         verify(requestHeadersUriSpec).uri("/{id}/price", productId);
         verify(requestHeadersSpec).retrieve();
-        verify(responseSpec).bodyToMono(eq(Double.class));
+        verify(responseSpec).bodyToMono(Double.class);
     }
 
     @Test
@@ -387,7 +386,7 @@ class ProductAggregatorServiceTest {
         // Given
         String productId = "p1";
         setupWebClientForGetRequest("/{id}/price", productId);
-        when(responseSpec.bodyToMono(eq(Double.class)))
+        when(responseSpec.bodyToMono(Double.class))
                 .thenReturn(Mono.error(new WebClientResponseException(500, "Internal Server Error", null, null, null)));
 
         // When
@@ -418,7 +417,7 @@ class ProductAggregatorServiceTest {
                 .build();
         
         setupWebClientForGetRequest("");
-        when(responseSpec.bodyToFlux(eq(ProductDto.class)))
+        when(responseSpec.bodyToFlux(ProductDto.class))
                 .thenReturn(Flux.just(product1, product2));
 
         // When
@@ -432,14 +431,14 @@ class ProductAggregatorServiceTest {
         verify(webClient).get();
         verify(requestHeadersUriSpec).uri("");
         verify(requestHeadersSpec).retrieve();
-        verify(responseSpec).bodyToFlux(eq(ProductDto.class));
+        verify(responseSpec).bodyToFlux(ProductDto.class);
     }
 
     @Test
     void getAllProducts_WhenEmptyResponse_ShouldReturnEmptyFlux() {
         // Given
         setupWebClientForGetRequest("");
-        when(responseSpec.bodyToFlux(eq(ProductDto.class)))
+        when(responseSpec.bodyToFlux(ProductDto.class))
                 .thenReturn(Flux.empty());
 
         // When
@@ -456,7 +455,7 @@ class ProductAggregatorServiceTest {
         // Given
         String productId = "p1";
         setupWebClientForGetRequest("/{id}/price", productId);
-        when(responseSpec.bodyToMono(eq(Double.class)))
+        when(responseSpec.bodyToMono(Double.class))
                 .thenReturn(Mono.error(new RuntimeException("Downstream error")));
 
         // When
@@ -474,7 +473,7 @@ class ProductAggregatorServiceTest {
         verify(webClient).get();
         verify(requestHeadersUriSpec).uri("/{id}/price", productId);
         verify(requestHeadersSpec).retrieve();
-        verify(responseSpec).bodyToMono(eq(Double.class));
+        verify(responseSpec).bodyToMono(Double.class);
     }
 
     @Test
@@ -482,7 +481,7 @@ class ProductAggregatorServiceTest {
         // Given
         String productId = "p1";
         setupWebClientForGetRequest("/{id}", productId);
-        when(responseSpec.bodyToMono(eq(ProductDto.class))).thenReturn(Mono.just(testProduct));
+        when(responseSpec.bodyToMono(ProductDto.class)).thenReturn(Mono.just(testProduct));
 
         // When
         productAggregatorService.getProduct(productId).block();
@@ -491,7 +490,7 @@ class ProductAggregatorServiceTest {
         verify(webClient).get();
         verify(requestHeadersUriSpec).uri("/{id}", productId);
         verify(requestHeadersSpec).retrieve();
-        verify(responseSpec).bodyToMono(eq(ProductDto.class));
+        verify(responseSpec).bodyToMono(ProductDto.class);
         
         // Verify circuit breaker and retry were used
         verify(cbRegistry).circuitBreaker(anyString());

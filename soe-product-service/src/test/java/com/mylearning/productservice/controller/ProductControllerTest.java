@@ -18,7 +18,7 @@ import reactor.core.publisher.Mono;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(SpringExtension.class)
-@WebFluxTest(ProductController.class)
+@WebFluxTest(controllers = ProductController.class)
 @Import(ProductController.class)
 class ProductControllerTest {
 
@@ -28,10 +28,10 @@ class ProductControllerTest {
     @Autowired
     private WebTestClient webTestClient;
 
-    private final String BASE_URL = "/api/products";
-    private final String PRODUCT_ID = "test-product-123";
+    private final String baseUrl = "/api/products";
+    private final String productId = "test-product-123";
     private final ProductDto testProduct = new ProductDto(
-            PRODUCT_ID,
+            productId,
             "1",
             "Test Product",
             "Test Brand",
@@ -44,28 +44,29 @@ class ProductControllerTest {
     @BeforeEach
     void setUp() {
         // Setup test data
-        when(productService.getProductDetails(PRODUCT_ID)).thenReturn(Mono.just(testProduct));
+        when(productService.getProductDetails(productId)).thenReturn(Mono.just(testProduct));
         when(productService.getAllProducts()).thenReturn(Flux.just(testProduct));
-        when(productService.getProductPrice(PRODUCT_ID)).thenReturn(Mono.just(999.99));
+        when(productService.getProductPrice(productId)).thenReturn(Mono.just(999.99));
     }
 
     @Test
     void getProductDetails_shouldReturnProduct() {
         webTestClient.get()
-                .uri(BASE_URL + "/{id}/details", PRODUCT_ID)
+                .uri(baseUrl + "/{id}/details", productId)
                 .accept(MediaType.APPLICATION_JSON)
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody()
-                .jsonPath("$.data.productId").isEqualTo(PRODUCT_ID)
+                .jsonPath("$.data.productId").isEqualTo(productId)
                 .jsonPath("$.data.productDisplayName").isEqualTo(testProduct.getProductDisplayName())
                 .jsonPath("$.message").exists();
     }
 
+
     @Test
     void getProductDetails_withInvalidId_shouldReturnBadRequest() {
         webTestClient.get()
-                .uri(BASE_URL + "/ /details")
+                .uri(baseUrl + "/ /details")
                 .accept(MediaType.APPLICATION_JSON)
                 .exchange()
                 .expectStatus().isBadRequest()
@@ -81,20 +82,20 @@ class ProductControllerTest {
     @Test
     void getAllProducts_shouldReturnProductList() {
         webTestClient.get()
-                .uri(BASE_URL)
+                .uri(baseUrl)
                 .accept(MediaType.APPLICATION_JSON)
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody()
                 .jsonPath("$.data").isArray()
-                .jsonPath("$.data[0].productId").isEqualTo(PRODUCT_ID)
+                .jsonPath("$.data[0].productId").isEqualTo(productId)
                 .jsonPath("$.message").exists();
     }
 
     @Test
     void getProductPrice_shouldReturnPrice() {
         webTestClient.get()
-                .uri(BASE_URL + "/{id}/price", PRODUCT_ID)
+                .uri(baseUrl + "/{id}/price", productId)
                 .accept(MediaType.APPLICATION_JSON)
                 .exchange()
                 .expectStatus().isOk()
@@ -106,7 +107,7 @@ class ProductControllerTest {
     @Test
     void getProductPrice_withInvalidId_shouldReturnBadRequest() {
         webTestClient.get()
-                .uri(BASE_URL + "/ /price")
+                .uri(baseUrl + "/ /price")
                 .accept(MediaType.APPLICATION_JSON)
                 .exchange()
                 .expectStatus().isBadRequest()

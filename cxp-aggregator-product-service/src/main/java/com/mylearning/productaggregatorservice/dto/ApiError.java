@@ -9,7 +9,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-public class ApiError<T>
+public class ApiError
 {
     private String code;
     private String message;

@@ -1,6 +1,6 @@
 FROM openjdk:21
 WORKDIR /app
-ADD  target/product-aggregator-service.jar product-aggregator-service.jar
+COPY  target/product-aggregator-service.jar product-aggregator-service.jar
 EXPOSE 8081
 ENTRYPOINT ["java", "-jar", "product-aggregator-service.jar"]
 CMD ["--server.port=8081"]

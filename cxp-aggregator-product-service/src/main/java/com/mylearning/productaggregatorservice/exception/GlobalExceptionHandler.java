@@ -32,9 +32,9 @@ public class GlobalExceptionHandler {
                         err.getField(),
                         String.valueOf(err.getRejectedValue()),
                         err.getDefaultMessage()))
-                .collect(Collectors.toList());
+                .toList();
 
-        ApiError<Object> apiError = new ApiError<>("VALIDATION_ERROR", "Invalid input", fieldErrors);
+        ApiError apiError = new ApiError("VALIDATION_ERROR", "Invalid input", fieldErrors);
         return buildErrorResponse(apiError, HttpStatus.BAD_REQUEST);
     }
 
@@ -46,9 +46,9 @@ public class GlobalExceptionHandler {
         List<FieldValidationError> fieldErrors = ex.getConstraintViolations()
                 .stream()
                 .map(this::toFieldError)
-                .collect(Collectors.toList());
+                .toList();
 
-        ApiError<Object> apiError = new ApiError<>("CONSTRAINT_VIOLATION", "Invalid parameter(s)", fieldErrors);
+        ApiError apiError = new ApiError("CONSTRAINT_VIOLATION", "Invalid parameter(s)", fieldErrors);
         return buildErrorResponse(apiError, HttpStatus.BAD_REQUEST);
     }
 
@@ -56,7 +56,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DownstreamException.class)
     public ResponseEntity<ApiResponse<Object>> handleDownstreamException(DownstreamException ex) {
         log.error("Downstream exception: {}", ex.getMessage(), ex);
-        ApiError<Object> apiError = new ApiError<>("DOWNSTREAM_FAILURE", ex.getMessage(), null);
+        ApiError apiError = new ApiError("DOWNSTREAM_FAILURE", ex.getMessage(), null);
         return buildErrorResponse(apiError, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
@@ -64,7 +64,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Object>> handleGeneric(Exception ex) {
         log.error("Unexpected error: {}", ex.getMessage(), ex);
-        ApiError<Object> apiError = new ApiError<>("INTERNAL_ERROR", "Something went wrong", null);
+        ApiError apiError = new ApiError("INTERNAL_ERROR", "Something went wrong", null);
         return buildErrorResponse(apiError, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
@@ -75,7 +75,7 @@ public class GlobalExceptionHandler {
         return new FieldValidationError(field, rejected, violation.getMessage());
     }
 
-    private ResponseEntity<ApiResponse<Object>> buildErrorResponse(ApiError<Object> error, HttpStatus status) {
+    private ResponseEntity<ApiResponse<Object>> buildErrorResponse(ApiError error, HttpStatus status) {
         ApiResponse<Object> response = ApiResponse.<Object>builder()
                 .apiSuccess(false)
                 .timeStamp(Instant.now())
