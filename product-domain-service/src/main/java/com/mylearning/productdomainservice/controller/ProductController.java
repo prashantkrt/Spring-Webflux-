@@ -11,19 +11,19 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping(("/api/products"))
 @RequiredArgsConstructor
+@Slf4j
 public class ProductController {
 
     private final ProductService productService;
@@ -41,7 +41,9 @@ public class ProductController {
     })
     @GetMapping
     public Flux<Product> getAllProducts() {
-        return productService.getAllProducts();
+        log.info("Received request to fetch all products");
+        return productService.getAllProducts()
+                .doOnNext(p -> log.info("Product ID: {}", p.getProductId()));
     }
 
     @Operation(summary = "List all products", description = "Returns the entire product catalog as a reactive stream")
@@ -53,8 +55,8 @@ public class ProductController {
     })
     @GetMapping("/{id}")
     public Mono<Product> getProductById(@Parameter(description = "Product ID", required = true) @PathVariable String id) {
-        return productService.getProductById(id)
-                .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found")));
+        log.info("Fetching product with ID: {}", id);
+        return productService.getProductById(id);
     }
 
     @Operation(summary = "Find product by ID", description = "Returns a single product. 404 if not found")
@@ -67,7 +69,7 @@ public class ProductController {
     })
     @GetMapping("/{id}/price")
     public Mono<Double> getProductPrice(@Parameter(description = "Product ID", required = true) @PathVariable String id) {
-        return productService.getPriceById(id)
-                .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found")));
+        log.info("Fetching price for product ID: {}", id);
+        return productService.getPriceById(id);
     }
 }

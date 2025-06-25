@@ -11,10 +11,11 @@ import java.time.Instant;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-    @ExceptionHandler(ProductNotFoundException.class)
-    public ResponseEntity<ApiResponse<String>> handleProductNotFound(ProductNotFoundException ex, ServerWebExchange exchange) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                new ApiResponse<>(Instant.now(), 404, ex.getMessage(), exchange.getRequest().getPath().value(), null)
+
+    @ExceptionHandler(BaseDomainException.class)
+    public ResponseEntity<ApiResponse<String>> handleBaseException(BaseDomainException ex, ServerWebExchange exchange) {
+        return ResponseEntity.status(ex.getStatus()).body(
+                new ApiResponse<>(Instant.now(), ex.getStatus().value(), ex.getMessage(), exchange.getRequest().getPath().value(), null)
         );
     }
 }

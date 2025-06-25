@@ -9,7 +9,7 @@ import com.mylearning.productservice.exception.AggregatorUnavailableException;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.github.resilience4j.reactor.circuitbreaker.operator.CircuitBreakerOperator;
-import lombok.RequiredArgsConstructor;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
@@ -22,7 +22,6 @@ import java.util.Collections;
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class ProductServiceImpl implements ProductService {
 
@@ -30,6 +29,13 @@ public class ProductServiceImpl implements ProductService {
     private final CircuitBreakerRegistry circuitBreakerRegistry;
     private final ObjectMapper objectMapper;
 
+    public ProductServiceImpl(WebClient aggregatorWebClient,
+                              CircuitBreakerRegistry circuitBreakerRegistry,
+                              ObjectMapper objectMapper) {
+        this.aggregatorWebClient = aggregatorWebClient;
+        this.circuitBreakerRegistry = circuitBreakerRegistry;
+        this.objectMapper = objectMapper;
+    }
     private static final String CB_NAME = "productServiceCB";
 
     private CircuitBreaker getCircuitBreaker() {
@@ -41,6 +47,7 @@ public class ProductServiceImpl implements ProductService {
     private static final ParameterizedTypeReference<ApiResponse<Double>> PRICE_REF = new ParameterizedTypeReference<>() {};
 
     @Override
+    @WithSpan("ProductService.getProductDetails")
     public Mono<ProductDto> getProductDetails(String id) {
         log.info("Fetching product details for id {}", id);
 
@@ -54,6 +61,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @WithSpan("ProductService.getAllProducts")
     public Flux<ProductDto> getAllProducts() {
         log.info("Fetching all products");
 
@@ -68,6 +76,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @WithSpan("ProductService.getProductPrice")
     public Mono<Double> getProductPrice(String id) {
         log.info("Fetching price for product {}", id);
 
@@ -88,6 +97,7 @@ public class ProductServiceImpl implements ProductService {
         return Flux.error(toAggregatorUnavailable(context, ex));
     }
 
+    @WithSpan("ProductService.parseAggregatorError")
     private AggregatorUnavailableException toAggregatorUnavailable(String context, Throwable ex) {
         if (ex instanceof WebClientResponseException wex) {
             try {

@@ -2,7 +2,7 @@ package com.mylearning.productdomainservice.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mylearning.productdomainservice.exception.InvalidProductDataException;
+import com.mylearning.productdomainservice.exception.ProductDataLoadException;
 import com.mylearning.productdomainservice.exception.ProductNotFoundException;
 import com.mylearning.productdomainservice.model.Product;
 import org.junit.jupiter.api.BeforeEach;
@@ -127,7 +127,7 @@ class ProductServiceImplTest {
         ReflectionTestUtils.setField(service, "mapper", objectMapper);
 
         // When & Then
-        assertThrows(InvalidProductDataException.class, service::loadData);
+        assertThrows(ProductDataLoadException.class, service::loadData);
     }
 
     

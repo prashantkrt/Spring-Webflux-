@@ -113,10 +113,10 @@ public class ProductAggregatorServiceImpl implements ProductAggregatorService {
     }
 
     private void fallbackProductAction(String id, Throwable ex) {
-        log.warn("Fallback triggered for product {}: {}", id, ex.toString());
+        log.warn("Fallback triggered for product {}: {}", id, ex.getMessage());
     }
 
     private void fallbackProductPriceAction(String id, Throwable ex) {
-        log.warn("Fallback triggered for price {}: {}", id, ex.toString());
+        log.warn("Fallback triggered for price {}: {}", id, ex.getMessage());
     }
 }

@@ -29,6 +29,7 @@
 	<properties>
 		<java.version>21</java.version>
 	</properties>
+
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -71,6 +72,28 @@
 			<version>2.1.0</version>
 		</dependency>
 
+		<!-- https://mvnrepository.com/artifact/io.opentelemetry.instrumentation/opentelemetry-spring-boot-starter -->
+		<dependency>
+			<groupId>io.opentelemetry.instrumentation</groupId>
+			<artifactId>opentelemetry-spring-boot-starter</artifactId>
+			<version>2.16.0</version>
+		</dependency>
+
+		<!-- Annotation support -->
+		<dependency>
+			<groupId>io.opentelemetry.instrumentation</groupId>
+			<artifactId>opentelemetry-instrumentation-annotations</artifactId>
+			<version>1.32.0</version>
+		</dependency>
+
+		<!-- REQUIRED: Auto-inject traceId/spanId into MDC for logging -->
+		<!-- https://mvnrepository.com/artifact/io.opentelemetry.instrumentation/opentelemetry-logback-mdc-1.0 -->
+		<dependency>
+			<groupId>io.opentelemetry.instrumentation</groupId>
+			<artifactId>opentelemetry-logback-mdc-1.0</artifactId>
+			<version>2.16.0-alpha</version>
+			<scope>runtime</scope>
+		</dependency>
 
 		<dependency>
 			<groupId>io.projectreactor</groupId>

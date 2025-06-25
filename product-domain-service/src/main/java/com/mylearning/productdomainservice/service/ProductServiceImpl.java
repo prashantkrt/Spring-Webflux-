@@ -2,9 +2,11 @@ package com.mylearning.productdomainservice.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mylearning.productdomainservice.exception.InvalidProductDataException;
+import com.mylearning.productdomainservice.exception.ProductDataLoadException;
+import com.mylearning.productdomainservice.exception.ProductDataNotLoadedException;
 import com.mylearning.productdomainservice.exception.ProductNotFoundException;
 import com.mylearning.productdomainservice.model.Product;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,6 +26,7 @@ public class ProductServiceImpl implements ProductService {
     private List<Product> products;
 
     @PostConstruct
+    @WithSpan("ProductService.loadData")
     public void loadData() throws IOException {
         try {
             InputStream is = getClass().getClassLoader().getResourceAsStream("data/productData.json");
@@ -61,7 +64,7 @@ public class ProductServiceImpl implements ProductService {
             log.info("Loaded {} products successfully", products.size());
         } catch (Exception ex) {
             log.error("Failed to load product data from JSON", ex);
-            throw new InvalidProductDataException("Unable to load product data", ex);
+            throw new ProductDataLoadException("Unable to load product data from product data source", ex);
         }
     }
 
@@ -98,22 +101,44 @@ public class ProductServiceImpl implements ProductService {
 
 
     @Override
+    @WithSpan("ProductService.getAllProducts")
     public Flux<Product> getAllProducts() {
-        return Flux.fromIterable(products);
+        log.info("Fetching all products");
+        return Flux.defer(() -> {
+            if (products == null || products.isEmpty()) {
+                log.warn("Product data not loaded or empty");
+                return Flux.error(new ProductDataNotLoadedException("Product data is not loaded or empty"));
+            }
+            log.info("Total products available: {}", products.size());
+            return Flux.fromIterable(products);
+        });
     }
 
     @Override
+    @WithSpan("ProductService.getProductById")
     public Mono<Product> getProductById(String id) {
+        log.info("Fetching product by ID: {}", id);
         return Mono.justOrEmpty(
                         products.stream()
                                 .filter(p -> p.getProductId().equals(id))
                                 .findFirst()
                 )
-                .switchIfEmpty(Mono.error(new ProductNotFoundException(id)));
+                .doOnNext(p -> log.info("Found product: {}", p))
+                .switchIfEmpty(Mono.defer(() -> {
+                    log.warn("Product not found for ID: {}", id);
+                    return Mono.error(new ProductNotFoundException(id));
+                }));
     }
 
     @Override
+    @WithSpan("ProductService.getPriceById")
     public Mono<Double> getPriceById(String id) {
-        return getProductById(id).map(Product::getPrice);
+        log.info("Fetching price for product ID: {}", id);
+
+        return getProductById(id)
+                .map(product -> {
+                    log.info("Product price for {} is {}", id, product.getPrice());
+                    return product.getPrice();
+                });
     }
 }
