@@ -1,0 +1,42 @@
+type Product {
+    productId: ID!
+    seqNo: String!
+    productDisplayName: String!
+    brandName: String!
+    productType: String!
+    operatingSystem: String!
+    price: Float
+    color: String!
+}
+
+type ApiResponse_Product    {
+    timestamp: String!
+    status: Int!
+    path: String!
+    message: String!
+    data: Product
+}
+
+type ApiResponse_ProductList{
+    timestamp: String!
+    status: Int!
+    path: String!
+    message: String!
+    data: [Product!]!
+}
+
+type ApiResponse_Price      {
+    timestamp: String!
+    status: Int!
+    path: String!
+    message: String!
+    data: Float
+}
+type Query {
+    getProductDetails(id: ID!):          ApiResponse_Product
+    getAllProducts:                  ApiResponse_ProductList
+    getPrice(id: ID!):            ApiResponse_Price
+}
+
+
+#http://localhost:8080/graphql

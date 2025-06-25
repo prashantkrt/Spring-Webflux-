@@ -47,6 +47,7 @@ public class ProductServiceImpl implements ProductService {
     private static final ParameterizedTypeReference<ApiResponse<Double>> PRICE_REF = new ParameterizedTypeReference<>() {};
 
     private static final String ERROR_PREFIX = "Aggregator error while fetching ";
+
     @Override
     @WithSpan("ProductService.getProductDetails")
     public Mono<ProductDto> getProductDetails(String id) {
