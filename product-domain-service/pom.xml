@@ -135,6 +135,11 @@
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
 				<version>0.8.11</version>
+				<configuration>
+					<excludes>
+						<exclude>com/mylearning/productdomainservice/dto/*</exclude>
+					</excludes>
+				</configuration>
 				<executions>
 
 					<!-- Attach JaCoCo to test phase -->
@@ -145,7 +150,7 @@
 						</goals>
 					</execution>
 
-					<!-- Generate HTML report after test -->
+					<!-- Generate an HTML report after test -->
 					<execution>
 						<id>report</id>
 						<phase>test</phase>

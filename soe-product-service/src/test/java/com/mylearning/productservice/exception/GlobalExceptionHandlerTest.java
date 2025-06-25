@@ -1,6 +1,5 @@
 package com.mylearning.productservice.exception;
 
-import com.mylearning.productservice.dto.ApiError;
 import com.mylearning.productservice.dto.ApiResponse;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
@@ -20,15 +19,12 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
-import java.net.URI;
-import java.time.Instant;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class GlobalExceptionHandlerTest {

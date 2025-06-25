@@ -3,7 +3,6 @@ package com.mylearning.productservice.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mylearning.productservice.dto.ApiError;
 import com.mylearning.productservice.dto.ApiResponse;
 import com.mylearning.productservice.dto.ProductDto;
 import com.mylearning.productservice.exception.AggregatorUnavailableException;
@@ -21,7 +20,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
